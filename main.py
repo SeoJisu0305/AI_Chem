@@ -13,7 +13,7 @@ import random
 from rdkit import Chem
 from rdkit.Chem import AllChem, Descriptors, rdMolDescriptors # changed
 from rdkit import RDLogger
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 from matplotlib import pyplot as plt
 
 class MyDataset(Dataset):
@@ -342,9 +342,6 @@ if __name__ == "__main__":
     print("Device count:", torch.cuda.device_count())
     print("Current device:", torch.cuda.current_device())
 
-    lg = RDLogger.logger()
-    lg.setLevel(RDLogger.CRITICAL)
-
     model_path = f"./best_model.pt" # You should submit this file.
     ckpt_path = f"./last_model.pt"
 
@@ -371,6 +368,8 @@ if __name__ == "__main__":
     hid_dim = 128
     n_layer = 2
     train_data_ratio = 0.8   
+    step_size = 50
+    gamma = 0.5
 
     n_epochs = 50
     batch_size = 512
@@ -410,7 +409,7 @@ if __name__ == "__main__":
 
     # train
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay = weight_decay)
-    scheduler = StepLR(optimizer, step_size=50, gamma=0.1)
+    scheduler = StepLR(optimizer, step_size=step_size, gamma=gamma)
 
     train_loss_history, valid_loss_history = [], []
     best_loss = float('inf')
@@ -444,18 +443,4 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load(model_path, 'cpu', weights_only=True))
     model.to(device)
     model.eval()
-
-    inputs = raw_data['test']['input1'] + raw_data['test']['input2']
-    test_set = MyDataset(inputs, [0] * 2000)
-    test_loader = DataLoader(test_set, batch_size, collate_fn=my_collate_fn, num_workers=num_workers)
-
-    y_list = []
-    with torch.no_grad():
-        for batch in test_loader:
-            y_pred = model.inference_batch(batch)
-            y_list.extend(y_pred.tolist())
-    assert len(y_list) == 2000
-    with open(f'submission.txt', 'w') as w:
-        for y in y_list:
-            w.write(f'{y:.4f}\n')
     
