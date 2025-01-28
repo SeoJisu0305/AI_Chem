@@ -443,4 +443,3 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load(model_path, 'cpu', weights_only=True))
     model.to(device)
     model.eval()
-    
